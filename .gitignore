@@ -8,3 +8,5 @@ models/
 .vscode/    
 .idea/
 .DS_Store
+mlflow.db
+.pytest_cache/
