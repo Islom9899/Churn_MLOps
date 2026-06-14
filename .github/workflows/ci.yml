@@ -1,0 +1,40 @@
+# GitHub Actions CI — har push/PR da avtomat: o'rnatish -> train -> test
+name: CI
+
+# QACHON ishga tushadi: main yoki master ga push, yoki shu branch'larga PR
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest          # GitHub bepul beradigan Linux mashina
+
+    steps:
+      # 1) Repo kodini mashinaga olib kelish
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2) Python o'rnatish (loyihangdagi versiya)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # 3) Paketlarni o'rnatish (to'liq requirements.txt — train va test ham kerak)
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4) Modelni o'qitish.
+      #    Model repo'ga qo'shilmagan (.gitignore'da), shuning uchun CI uni shu yerda yaratadi.
+      #    Buning uchun data/telco_churn.csv repo'da bo'lishi SHART (pastdagi eslatmaga qara).
+      - name: Train model
+        run: python src/train.py
+
+      # 5) Testlarni ishga tushirish
+      - name: Run tests
+        run: pytest

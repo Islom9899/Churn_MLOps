@@ -1,0 +1,13 @@
+# Bu fayllar/papkalar Docker'ga UMUMAN yuborilmaydi (build tez va toza bo'ladi).
+.venv/
+mlruns/
+mlflow.db
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+tests/
+data/
+.vscode/
+.idea/
+.env
