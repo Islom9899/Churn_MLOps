@@ -4,6 +4,10 @@ scikit-learn==1.8.0
 joblib==1.5.3
 mlflow==3.13.0
 
+# Trening pipeline orchestratsiyasi (Phase 2)
+prefect==3.3.7         # flow va task orqali pipeline orchestratsiyasi
+pyyaml==6.0.2          # DVC .dvc faylidan dataset hash o'qish uchun
+
 # Ma'lumot validatsiyasi va versiyalash (Phase 1)
 pandera==0.21.0        # sxema, diapason va kategoriya tekshiruvi
 dvc==3.59.0            # dataset va model artefaktlarini versiyalash (git bilan bog'liq)

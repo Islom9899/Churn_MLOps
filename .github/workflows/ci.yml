@@ -1,7 +1,6 @@
-# GitHub Actions CI — har push/PR da avtomat: o'rnatish -> train -> test
+# GitHub Actions CI — har push/PR da avtomat: o'rnatish -> trening -> test
 name: CI
 
-# QACHON ishga tushadi: main yoki master ga push, yoki shu branch'larga PR
 on:
   push:
     branches: [ main, master ]
@@ -10,31 +9,39 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest          # GitHub bepul beradigan Linux mashina
+    runs-on: ubuntu-latest
 
     steps:
-      # 1) Repo kodini mashinaga olib kelish
+      # 1) Repo kodi (DVC meta fayllar ham shu yerda: .dvc fayllar)
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2) Python o'rnatish (loyihangdagi versiya)
+      # 2) Python o'rnatish
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      # 3) Paketlarni o'rnatish (to'liq requirements.txt — train va test ham kerak)
+      # 3) Paketlarni o'rnatish
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4) Modelni o'qitish.
-      #    Model repo'ga qo'shilmagan (.gitignore'da), shuning uchun CI uni shu yerda yaratadi.
-      #    Buning uchun data/telco_churn.csv repo'da bo'lishi SHART (pastdagi eslatmaga qara).
-      - name: Train model
-        run: python src/train.py
+      # 4) Trening ma'lumotini tayyorlash.
+      #    Avval DVC pull urinib ko'riladi (cloud remote sozlangan bo'lsa ishlaydi).
+      #    Agar remote yo'q bo'lsa — to'liq prepare.py orqali qayta yaratiladi.
+      #    DATABASE_URL GitHub Secret sifatida saqlangan bo'lishi kerak.
+      - name: Prepare training data
+        run: dvc pull data/training_dataset.csv || python -m src.data.prepare
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      # 5) Testlarni ishga tushirish
+      # 5) Prefect flow orqali model o'qitiladi + MLflow Registry ga ro'yxatga olinadi.
+      #    PREFECT_API_URL yo'q bo'lsa — Prefect lokal rejimda ishlaydi (server shart emas).
+      - name: Train model (Prefect flow)
+        run: python -m src.pipeline.train_flow
+
+      # 6) Testlar
       - name: Run tests
         run: pytest
