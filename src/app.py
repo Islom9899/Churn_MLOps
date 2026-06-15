@@ -1,13 +1,13 @@
 """
-app.py — Churn modelini FastAPI orqali HTTP xizmat (serving) qilish.
+app.py — Churn modelini FastAPI orqali xizmat qilish + ma'lumot yig'ish (ingestion).
 
-Vazifasi:
-    Saqlangan modelni (models/churn_model.joblib) yuklaydi va 2 ta endpoint beradi:
-      GET  /health   -> xizmat tirikmi (sog'liq tekshiruvi)
-      POST /predict  -> bitta mijoz ma'lumotini olib, churn (ketish) bashoratini qaytaradi
+Endpointlar:
+    GET  /health   -> xizmat tirikmi
+    POST /predict  -> mijoz ma'lumotidan churn bashorati (model ishlatadi)
+    POST /ingest   -> mijoz yozuvini (belgilar + haqiqiy Churn) bazaga saqlaydi
 
-Ishga tushirish:   uvicorn src.app:app --reload   (loyiha root'idan!)
-Hujjat (Swagger):  http://127.0.0.1:8000/docs      (shu yerdan to'g'ridan-to'g'ri sinaysan)
+Ishga tushirish:   uvicorn src.app:app --reload   (loyiha root'idan)
+Hujjat (Swagger):  http://127.0.0.1:8000/docs
 """
 
 from pathlib import Path
@@ -17,17 +17,15 @@ import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-# ---- Modelni BIR MARTA yuklaymiz ---------------------------------------------
-# Server ko'tarilganda 1 marta yuklanadi (har so'rovda qayta emas) — tez va samarali.
-# Diqqat: avval `python src/train.py` ishlatib model yaratilgan bo'lishi shart.
+from src.db import SessionLocal     # bazaga yozish uchun sessiya fabrikasi
+from src.models import Customer     # customers jadvali (ORM model)
+
+# ---- Modelni BIR MARTA yuklaymiz (server ko'tarilganda) ----
 MODEL_PATH = Path("models/churn_model.joblib")
 model = joblib.load(MODEL_PATH)
 
 
-# ---- Kirish sxemasi: bitta mijozning belgilari -------------------------------
-# Pydantic avtomat tekshiradi: maydon yetishmasa yoki turi noto'g'ri bo'lsa -> 422 xato.
-# Maydon NOMLARI dataset ustun nomlari bilan AYNAN bir xil (model shu nomlarni kutadi).
-# Raqamli: SeniorCitizen, tenure (int); MonthlyCharges, TotalCharges (float). Qolgani matn (str).
+# ---- Kirish sxemasi: mijoz belgilari (bashorat uchun) ----
 class CustomerFeatures(BaseModel):
     gender: str
     SeniorCitizen: int
@@ -49,7 +47,6 @@ class CustomerFeatures(BaseModel):
     MonthlyCharges: float
     TotalCharges: float
 
-    # /docs sahifasidagi "Try it out" tugmasi shu namunani avtomat to'ldiradi:
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -66,38 +63,49 @@ class CustomerFeatures(BaseModel):
     }
 
 
-# ---- Chiqish sxemasi: bashorat javobi ----------------------------------------
+# ---- Ingestion sxemasi: belgilar + haqiqiy Churn natijasi ----
+class CustomerRecord(CustomerFeatures):
+    """Bazaga saqlash uchun: 19 belgi + haqiqiy Churn ('Yes'/'No')."""
+    Churn: str
+
+
+# ---- Chiqish sxemasi: bashorat javobi ----
 class PredictionResponse(BaseModel):
     churn: int = Field(description="0 = qoladi, 1 = ketadi")
     churn_probability: float = Field(description="Ketish ehtimoli (0..1)")
     churn_label: str = Field(description="'Yes' yoki 'No'")
 
 
-# ---- FastAPI ilovasi ---------------------------------------------------------
-app = FastAPI(title="Churn Prediction API", version="1.0")
+# ---- FastAPI ilovasi ----
+app = FastAPI(title="Churn Prediction API", version="2.0")
 
-@app.get("/")
-def root() -> dict:
-    """Asosiy sahifa — foydalanuvchini kutib oladi va /docs ga yo'naltiradi."""
-    return {"message": "Welcome to the Churn Prediction API! Visit /docs for usage."}
+
 @app.get("/health")
 def health() -> dict:
-    """Sog'liq tekshiruvi — xizmat ishlayotganini bildiradi (Docker/monitoring shuni so'raydi)."""
+    """Sog'liq tekshiruvi — xizmat ishlayotganini bildiradi."""
     return {"status": "ok"}
 
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(features: CustomerFeatures) -> PredictionResponse:
-    """Bitta mijoz ma'lumotini olib, churn bashoratini qaytaradi."""
-    # Pydantic obyektini 1 qatorli DataFrame ga aylantiramiz (model DataFrame kutadi).
+    """Bitta mijoz ma'lumotidan churn bashoratini qaytaradi."""
     X = pd.DataFrame([features.model_dump()])
-
-    # Pipeline ichida one-hot + RandomForest bor — tozalash/kodlash avtomat qo'llanadi.
-    proba = float(model.predict_proba(X)[0, 1])  # "ketadi" ehtimoli
-    pred = int(model.predict(X)[0])              # 0 yoki 1
-
+    proba = float(model.predict_proba(X)[0, 1])
+    pred = int(model.predict(X)[0])
     return PredictionResponse(
         churn=pred,
         churn_probability=round(proba, 4),
         churn_label="Yes" if pred == 1 else "No",
     )
+
+
+@app.post("/ingest")
+def ingest(record: CustomerRecord) -> dict:
+    """Yangi mijoz yozuvini (belgilar + Churn) customers jadvaliga saqlaydi."""
+    with SessionLocal() as session:                  # sessiya (avtomat yopiladi)
+        customer = Customer(**record.model_dump())   # Pydantic -> ORM obyekt
+        session.add(customer)                         # qo'shishga navbatga qo'yamiz
+        session.commit()                              # bazaga yozamiz
+        session.refresh(customer)                     # id va created_at ni bazadan o'qiymiz
+        new_id = customer.id                          # sessiya ichida o'qib olamiz
+    return {"status": "saved", "id": new_id}
