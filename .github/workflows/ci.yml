@@ -35,7 +35,7 @@ jobs:
       - name: Prepare training data
         run: dvc pull data/training_dataset.csv || python -m src.data.prepare
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets['DATABASE_URL'] }}
 
       # 5) Prefect flow orqali model o'qitiladi + MLflow Registry ga ro'yxatga olinadi.
       #    PREFECT_API_URL yo'q bo'lsa — Prefect lokal rejimda ishlaydi (server shart emas).
