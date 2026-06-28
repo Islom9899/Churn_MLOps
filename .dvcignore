@@ -5,5 +5,4 @@
 .dvc/site-cache/
 .venv/
 mlruns/
-models/
 mlflow.db

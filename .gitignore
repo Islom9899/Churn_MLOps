@@ -3,7 +3,9 @@ __pycache__/
 .env
 mlruns/
 *.pyc
-models/
+models/*
+!models/*.dvc
+!models/.gitignore
 
 .vscode/    
 .idea/
