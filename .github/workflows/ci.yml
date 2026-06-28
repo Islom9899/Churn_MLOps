@@ -33,7 +33,11 @@ jobs:
       #    Agar remote yo'q bo'lsa — to'liq prepare.py orqali qayta yaratiladi.
       #    DATABASE_URL GitHub Secret sifatida saqlangan bo'lishi kerak.
       - name: Prepare training data
-        run: dvc pull data/training_dataset.csv || python -m src.data.prepare
+        run: |
+          dvc pull data/training_dataset.csv || (
+            dvc pull data/WA_Fn-UseC_-Telco-Customer-Churn.csv &&
+            python -m src.data.prepare
+          )
         env:
           DATABASE_URL: ${{ secrets['DATABASE_URL'] }}
 
