@@ -201,6 +201,25 @@ promotion gate (staging → production) in CI/CD.
 
 ---
 
+## Current production status
+
+Phase 3 is implemented in code:
+
+- The API can load `models:/churn-prediction@production` from MLflow Model Registry.
+- Local development can still fall back to `models/churn_model.joblib`.
+- `/ingest` writes to `customer_features` and `churn_labels`, not the legacy `customers` table.
+- `python -m src.pipeline.promote_model` promotes the staging model to the production alias after the quality gate passes.
+
+Remaining production environment work:
+
+- Configure a DVC remote that GitHub Actions can access, not only `C:/Users/mansu/dvc_storage`.
+- Set production secrets: `DATABASE_URL`, `MLFLOW_TRACKING_URI`, and any registry artifact credentials.
+- Deploy the Docker image with `MODEL_SOURCE=registry`, `MLFLOW_MODEL_ALIAS=production`, and `ALLOW_LOCAL_MODEL_FALLBACK=false`.
+
+See `docs/production_rollout.md` for the step-by-step release guide and file-by-file code notes.
+
+---
+
 ## Roadmap
 
 | Phase | Scope                                                      | Status        |

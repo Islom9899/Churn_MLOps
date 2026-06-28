@@ -46,6 +46,9 @@ jobs:
       - name: Train model (Prefect flow)
         run: python -m src.pipeline.train_flow
 
+      - name: Promote model to production alias
+        run: python -m src.pipeline.promote_model
+
       # 6) Testlar
       - name: Run tests
         run: pytest
