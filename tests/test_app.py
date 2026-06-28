@@ -55,6 +55,16 @@ def test_predict_valid_returns_prediction():
     assert (body["churn"] == 1) == (body["churn_label"] == "Yes")
 
 
+def test_metrics_endpoint_exposes_prometheus_metrics():
+    """/metrics exposes Prometheus counters for monitoring."""
+    client.post("/predict", json=VALID)
+    r = client.get("/metrics")
+
+    assert r.status_code == 200
+    assert "churn_api_http_requests_total" in r.text
+    assert "churn_api_predictions_total" in r.text
+
+
 def test_predict_missing_field_returns_422():
     """Missing feature fields are rejected by Pydantic."""
     bad = dict(VALID)

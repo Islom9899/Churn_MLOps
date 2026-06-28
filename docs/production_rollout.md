@@ -57,12 +57,16 @@ step-by-step operator guide plus code notes for the changed files.
 | `src/pipeline/promote_model.py` | Phase 3 release gate | Promotes `staging` to `production` only when metrics pass. |
 | `src/model_loader.py` | Phase 3 serving | Loads the model from MLflow Registry or local fallback. |
 | `src/app.py` | Phase 3 serving | Serves `/predict`, `/ingest`, `/health`, and `/`. |
+| `src/observability.py` | Phase 4 observability | Exposes Prometheus metrics and optional OpenTelemetry tracing. |
 | `src/db.py` | Shared infra | Creates the SQLAlchemy engine and session factory. |
 | `src/models.py` | Shared infra | Defines DB tables used by training and serving. |
 | `.github/workflows/ci.yml` | CI/CD | Trains, promotes, and tests on every push or pull request. |
 | `Dockerfile` | Deployment | Builds the production API container. |
 | `requirements-serve.txt` | Deployment | Pins runtime dependencies for the API image. |
 | `.dvcignore` | Data ops | Prevents DVC from scanning local caches and runtime artifacts. |
+| `k8s/base/` | Phase 5 platform | Deploys the API to Kubernetes with probes and autoscaling. |
+| `monitoring/grafana/` | Phase 4 observability | Provides a Grafana dashboard template. |
+| `monitoring/prometheus/` | Phase 4 observability | Provides a Prometheus Operator ServiceMonitor. |
 
 ## Code notes: `src/model_loader.py`
 
@@ -138,3 +142,27 @@ step-by-step operator guide plus code notes for the changed files.
 - `.github/workflows/ci.yml`: now runs training, then promotion, then tests.
 
 - `.dvcignore`: ignores local runtime caches so DVC status does not scan non-data folders.
+
+## Code notes: `src/observability.py`
+
+- Module docstring: states this file belongs to Phase 4 observability.
+- `prometheus_client` imports: define counters and histograms for monitoring.
+- `HTTP_REQUESTS`: counts HTTP traffic by method, path, and status.
+- `HTTP_REQUEST_SECONDS`: records request latency as a histogram.
+- `PREDICTIONS`: counts predictions by churn label.
+- `PREDICTION_PROBABILITY`: records the probability distribution returned by the model.
+- `INGESTED_RECORDS`: counts accepted labeled records.
+- `setup_prometheus`: adds request middleware and exposes `/metrics`.
+- `record_prediction`: records one model prediction after `/predict`.
+- `record_ingest`: records one accepted observation after `/ingest`.
+- `setup_opentelemetry`: enables FastAPI and SQLAlchemy tracing only when `ENABLE_OTEL=true`.
+
+## Code notes: Kubernetes and monitoring files
+
+- `k8s/base/namespace.yaml`: creates the `churn-mlops` namespace.
+- `k8s/base/deployment.yaml`: runs two `churn-api` replicas with probes, resource limits, registry model mode, and OTLP env vars.
+- `k8s/base/service.yaml`: exposes the API inside the cluster.
+- `k8s/base/hpa.yaml`: scales the API by CPU utilization.
+- `k8s/base/kustomization.yaml`: lets `kubectl apply -k k8s/base` deploy the base stack.
+- `monitoring/prometheus/churn-api-servicemonitor.yaml`: tells Prometheus Operator to scrape `/metrics`.
+- `monitoring/grafana/churn-api-dashboard.json`: visualizes request rate, errors, latency, predictions, ingest rate, and probability distribution.

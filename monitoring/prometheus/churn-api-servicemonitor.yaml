@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: churn-api
+  namespace: churn-mlops
+  labels:
+    app.kubernetes.io/name: churn-api
+    app.kubernetes.io/part-of: churn-mlops
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: churn-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

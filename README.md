@@ -70,6 +70,10 @@ Key design decisions:
 | Data/model versioning | DVC                                              |
 | Database              | PostgreSQL (Neon) via SQLAlchemy                 |
 | Serving               | FastAPI + Uvicorn                                |
+| Metrics               | Prometheus client + `/metrics` endpoint          |
+| Dashboards            | Grafana dashboard template                        |
+| Tracing               | OpenTelemetry OTLP hooks                          |
+| Deployment            | Kubernetes manifests + HPA                        |
 | Packaging             | Docker                                           |
 | CI                    | GitHub Actions                                   |
 | Testing               | pytest + httpx                                   |
@@ -174,6 +178,7 @@ curl -X POST http://127.0.0.1:8000/predict \
 | Method | Path       | Description                                                |
 | ------ | ---------- | ---------------------------------------------------------- |
 | GET    | `/health`  | Liveness check.                                            |
+| GET    | `/metrics` | Prometheus metrics for request, prediction, and ingest monitoring. |
 | POST   | `/predict` | Returns churn prediction + probability for one customer.   |
 | POST   | `/ingest`  | Persists a labeled customer record (features + actual churn) to the database for future retraining. |
 
@@ -217,6 +222,7 @@ Remaining production environment work:
 - Deploy the Docker image with `MODEL_SOURCE=registry`, `MLFLOW_MODEL_ALIAS=production`, and `ALLOW_LOCAL_MODEL_FALLBACK=false`.
 
 See `docs/production_rollout.md` for the step-by-step release guide and file-by-file code notes.
+See `docs/platform_observability_roadmap.md` for the Grafana, Kubernetes, and OpenTelemetry plan.
 
 ---
 

@@ -18,9 +18,15 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.data.validation import rename_csv_columns
-from src.db import SessionLocal
+from src.db import SessionLocal, engine
 from src.model_loader import build_prediction_frame, load_serving_model
 from src.models import ChurnLabel, CustomerFeature
+from src.observability import (
+    record_ingest,
+    record_prediction,
+    setup_opentelemetry,
+    setup_prometheus,
+)
 
 
 class CustomerFeatures(BaseModel):
@@ -97,6 +103,8 @@ class PredictionResponse(BaseModel):
 
 app = FastAPI(title="Churn Prediction API", version="3.0")
 model = load_serving_model()
+setup_prometheus(app)
+setup_opentelemetry(app, engine)
 
 
 def _churn_to_int(value: str) -> int:
@@ -147,10 +155,12 @@ def predict(features: CustomerFeatures) -> PredictionResponse:
     X = build_prediction_frame(model, features.model_dump())
     proba = float(model.predict_proba(X)[0, 1])
     pred = int(model.predict(X)[0])
+    churn_label = "Yes" if pred == 1 else "No"
+    record_prediction(churn_label, proba)
     return PredictionResponse(
         churn=pred,
         churn_probability=round(proba, 4),
-        churn_label="Yes" if pred == 1 else "No",
+        churn_label=churn_label,
     )
 
 
@@ -184,9 +194,10 @@ def ingest(record: CustomerRecord) -> dict:
         monthly_charges=float(features["monthly_charges"]),
         total_charges=float(features["total_charges"]),
     )
+    churn_value = _churn_to_int(record.Churn)
     churn_label = ChurnLabel(
         customer_id=customer_id,
-        churn=_churn_to_int(record.Churn),
+        churn=churn_value,
         label_timestamp=label_ts,
     )
 
@@ -199,6 +210,7 @@ def ingest(record: CustomerRecord) -> dict:
         feature_id = customer_feature.id
         label_id = churn_label.id
 
+    record_ingest(churn_value)
     return {
         "status": "saved",
         "customer_id": customer_id,

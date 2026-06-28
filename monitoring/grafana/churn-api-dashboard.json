@@ -1,0 +1,87 @@
+{
+  "title": "Churn API - Production Serving",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "tags": ["mlops", "fastapi", "churn"],
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Request rate",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "sum(rate(churn_api_http_requests_total[5m]))",
+          "legendFormat": "requests/sec"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "5xx error rate",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "sum(rate(churn_api_http_requests_total{status_code=~\"5..\"}[5m]))",
+          "legendFormat": "5xx/sec"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Prediction rate",
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "sum(rate(churn_api_predictions_total[5m]))",
+          "legendFormat": "predictions/sec"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Ingest rate",
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "sum(rate(churn_api_ingested_records_total[5m]))",
+          "legendFormat": "records/sec"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP p95 latency",
+      "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(churn_api_http_request_duration_seconds_bucket[5m])) by (le, path))",
+          "legendFormat": "{{path}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Predictions by label",
+      "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(churn_api_predictions_total[5m])) by (churn_label)",
+          "legendFormat": "{{churn_label}}"
+        }
+      ]
+    },
+    {
+      "type": "heatmap",
+      "title": "Returned churn probability distribution",
+      "gridPos": {"x": 0, "y": 12, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(churn_api_prediction_probability_bucket[5m])) by (le)",
+          "legendFormat": "{{le}}"
+        }
+      ]
+    }
+  ]
+}
