@@ -69,3 +69,5 @@ jobs:
       # 6) Testlar
       - name: Run tests
         run: pytest
+        env:
+          DATABASE_URL: sqlite:///ci-test.db
