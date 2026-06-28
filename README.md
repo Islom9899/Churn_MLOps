@@ -223,6 +223,7 @@ Remaining production environment work:
 
 See `docs/production_rollout.md` for the step-by-step release guide and file-by-file code notes.
 See `docs/platform_observability_roadmap.md` for the Grafana, Kubernetes, and OpenTelemetry plan.
+See `docs/cicd_deployment.md` for GHCR image publishing, DVC remote secrets, and Kubernetes deploy automation.
 
 ---
 

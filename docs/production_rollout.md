@@ -61,6 +61,8 @@ step-by-step operator guide plus code notes for the changed files.
 | `src/db.py` | Shared infra | Creates the SQLAlchemy engine and session factory. |
 | `src/models.py` | Shared infra | Defines DB tables used by training and serving. |
 | `.github/workflows/ci.yml` | CI/CD | Trains, promotes, and tests on every push or pull request. |
+| `.github/workflows/container.yml` | Phase 6 CI/CD | Builds and pushes the API image to GHCR. |
+| `.github/workflows/deploy-k8s.yml` | Phase 6 CI/CD | Manually deploys a selected image tag to Kubernetes. |
 | `Dockerfile` | Deployment | Builds the production API container. |
 | `requirements-serve.txt` | Deployment | Pins runtime dependencies for the API image. |
 | `.dvcignore` | Data ops | Prevents DVC from scanning local caches and runtime artifacts. |
@@ -140,6 +142,8 @@ step-by-step operator guide plus code notes for the changed files.
   models, imports shared validation helpers, and writes DB rows.
 
 - `.github/workflows/ci.yml`: now runs training, then promotion, then tests.
+- `.github/workflows/container.yml`: publishes the production API image to GHCR.
+- `.github/workflows/deploy-k8s.yml`: applies Kubernetes manifests and waits for rollout status.
 
 - `.dvcignore`: ignores local runtime caches so DVC status does not scan non-data folders.
 

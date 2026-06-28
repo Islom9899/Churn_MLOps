@@ -68,6 +68,9 @@ trained, registered, promoted, and served.
 - `monitoring/grafana/churn-api-dashboard.json` is the Grafana dashboard template.
 - `monitoring/prometheus/churn-api-servicemonitor.yaml` lets Prometheus Operator scrape the API.
 - `k8s/base/` contains the Kubernetes base manifests.
+- `.github/workflows/container.yml` publishes the API container to GHCR.
+- `.github/workflows/deploy-k8s.yml` manually deploys a selected image tag to Kubernetes.
+- `.github/workflows/ci.yml` can override the laptop DVC remote with a CI-accessible remote secret.
 
 ## Commands
 

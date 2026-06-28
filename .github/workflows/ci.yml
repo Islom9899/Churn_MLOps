@@ -28,6 +28,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Configure CI DVC remote
+        run: |
+          if [ -z "$DVC_REMOTE_URL" ]; then
+            echo "::error::DVC_REMOTE_URL must be set to a CI-accessible DVC remote."
+            exit 1
+          fi
+          dvc remote modify --local local_remote url "$DVC_REMOTE_URL"
+        env:
+          DVC_REMOTE_URL: ${{ secrets.DVC_REMOTE_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.DVC_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DVC_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.DVC_AWS_DEFAULT_REGION }}
+
       # 4) Trening ma'lumotini tayyorlash.
       #    Avval DVC pull urinib ko'riladi (cloud remote sozlangan bo'lsa ishlaydi).
       #    Agar remote yo'q bo'lsa — to'liq prepare.py orqali qayta yaratiladi.

@@ -1,0 +1,49 @@
+name: Deploy Kubernetes
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: GHCR image tag to deploy
+        required: true
+        default: latest
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/islom9899/churn-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBE_CONFIG_B64 }}" | base64 --decode > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Ensure namespace exists
+        run: kubectl apply -f k8s/base/namespace.yaml
+
+      - name: Verify production secrets
+        run: kubectl -n churn-mlops get secret churn-api-secrets
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -k k8s/base
+          kubectl apply -f monitoring/prometheus/churn-api-servicemonitor.yaml
+
+      - name: Deploy selected image tag
+        run: |
+          kubectl -n churn-mlops set image deployment/churn-api churn-api=${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}
+          kubectl -n churn-mlops rollout status deployment/churn-api --timeout=180s
