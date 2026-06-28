@@ -2,4 +2,5 @@
     remote = local_remote
     site_cache_dir = .dvc/site-cache
 ['remote "local_remote"']
-    url = C:/Users/mansu/dvc_storage
+    url = s3://churn-mlops-dvc-mansurov-ap-northeast-2/dvc
+    region = ap-northeast-2

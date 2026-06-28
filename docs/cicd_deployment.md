@@ -48,6 +48,30 @@ kubectl -n churn-mlops create secret generic churn-api-secrets \
   --from-literal=MLFLOW_TRACKING_URI="https://..."
 ```
 
+## Current S3 DVC remote
+
+The project is configured for this AWS S3 remote:
+
+```text
+s3://churn-mlops-dvc-mansurov-ap-northeast-2/dvc
+```
+
+GitHub Secrets should contain:
+
+```text
+DVC_REMOTE_URL=s3://churn-mlops-dvc-mansurov-ap-northeast-2/dvc
+DVC_AWS_DEFAULT_REGION=ap-northeast-2
+```
+
+For the first upload from your laptop, run:
+
+```powershell
+.\scripts\push_dvc_s3.ps1
+```
+
+The script asks for AWS keys at runtime and clears them from the process
+environment after `dvc push`. Do not paste the keys into chat or commit them.
+
 ## Workflow order
 
 1. `CI`
@@ -98,8 +122,7 @@ Remote-specific DVC dependencies:
 | SSH | `dvc-ssh` |
 | HTTP/WebDAV | Usually covered by the base DVC install, depending on URL type. |
 
-Add the matching package to `requirements.txt` only after the storage provider is
-chosen. This keeps the base project portable while making the provider choice explicit.
+AWS S3 is now selected, so `dvc-s3` is pinned in `requirements.txt`.
 
 ## Portfolio value
 
